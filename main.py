@@ -2,10 +2,12 @@
 
 from fastapi import FastAPI
 from pydantic import BaseModel
+
 import pandas as pd
 from docx import Document
 import io
 import requests
+import re
 
 app = FastAPI()
 
@@ -23,29 +25,27 @@ async def read_root(input_data: FileInput):
     except Exception as e:
         return {"error": f"file_url download error: {str(e)}"}
 
-    # CSV 文件
-    if filename.endswith(".csv"):
+    # 用正则提取最后一个有效后缀
+    match = re.search(r'(\.csv|\.xlsx|\.xls|\.docx)(?!.*(\.csv|\.xlsx|\.xls|\.docx))', filename)
+    ext = match.group(1) if match else None
+
+    if ext == ".csv":
         try:
             df = pd.read_csv(io.BytesIO(content))
             return {"data": df.to_dict(orient="records")}
         except Exception as e:
             return {"error": str(e)}
-
-    # Excel 文件
-    elif filename.endswith(".xlsx") or filename.endswith(".xls"):
+    elif ext in (".xlsx", ".xls"):
         try:
             df = pd.read_excel(io.BytesIO(content))
             return {"data": df.to_dict(orient="records")}
         except Exception as e:
             return {"error": str(e)}
-
-    # Word 文件
-    elif filename.endswith(".docx"):
+    elif ext == ".docx":
         try:
             doc = Document(io.BytesIO(content))
             text = "\n".join(p.text for p in doc.paragraphs)
             return {"text": text}
         except Exception as e:
             return {"error": str(e)}
-
     return {"error": "unsupported file"}
