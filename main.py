@@ -32,13 +32,15 @@ async def read_root(input_data: FileInput):
     if ext == ".csv":
         try:
             df = pd.read_csv(io.BytesIO(content))
-            return {"data": df.to_dict(orient="records")}
+            data = df.where(pd.notnull(df), None).to_dict(orient="records")
+            return {"data": data}
         except Exception as e:
             return {"error": str(e)}
     elif ext in (".xlsx", ".xls"):
         try:
             df = pd.read_excel(io.BytesIO(content))
-            return {"data": df.to_dict(orient="records")}
+            data = df.where(pd.notnull(df), None).to_dict(orient="records")
+            return {"data": data}
         except Exception as e:
             return {"error": str(e)}
     elif ext == ".docx":
