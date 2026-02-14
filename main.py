@@ -8,6 +8,7 @@ from docx import Document
 import io
 import requests
 import re
+import json
 
 app = FastAPI()
 
@@ -33,14 +34,14 @@ async def read_root(input_data: FileInput):
         try:
             df = pd.read_csv(io.BytesIO(content))
             data = df.where(pd.notnull(df), None).to_dict(orient="records")
-            return {"data": data}
+            return {"data": json.dumps(data, ensure_ascii=False)}
         except Exception as e:
             return {"error": str(e)}
     elif ext in (".xlsx", ".xls"):
         try:
             df = pd.read_excel(io.BytesIO(content))
             data = df.where(pd.notnull(df), None).to_dict(orient="records")
-            return {"data": data}
+            return {"data": json.dumps(data, ensure_ascii=False)}
         except Exception as e:
             return {"error": str(e)}
     elif ext == ".docx":
