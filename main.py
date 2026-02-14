@@ -1,10 +1,7 @@
-
-
-from fastapi import FastAPI, Body
+from fastapi import FastAPI, UploadFile, File
 import pandas as pd
 from docx import Document
 import io
-import requests
 
 app = FastAPI()
 
@@ -13,31 +10,27 @@ def home():
     return {"status": "running"}
 
 @app.post("/read_file")
-async def read_file(body: dict = Body(...)):
-    file_url = body.get("file_url")
-    if not file_url:
-        return {"error": "file_url is required"}
-    try:
-        r = requests.get(file_url)
-        r.raise_for_status()
-        content = r.content
-        filename = file_url.split("?")[0].split("/")[-1].lower()
-    except Exception as e:
-        return {"error": f"file_url download error: {str(e)}"}
+async def read_file(file: UploadFile = File(...)):
+    content = await file.read()
+    filename = file.filename.lower()
 
-    # 文件类型判断
+    # CSV 文件
     if filename.endswith(".csv"):
         try:
             df = pd.read_csv(io.BytesIO(content))
             return {"data": df.to_dict(orient="records")}
         except Exception as e:
             return {"error": str(e)}
+
+    # Excel 文件
     elif filename.endswith(".xlsx") or filename.endswith(".xls"):
         try:
             df = pd.read_excel(io.BytesIO(content))
             return {"data": df.to_dict(orient="records")}
         except Exception as e:
             return {"error": str(e)}
+
+    # Word 文件
     elif filename.endswith(".docx"):
         try:
             doc = Document(io.BytesIO(content))
@@ -45,4 +38,5 @@ async def read_file(body: dict = Body(...)):
             return {"text": text}
         except Exception as e:
             return {"error": str(e)}
+
     return {"error": "unsupported file"}
